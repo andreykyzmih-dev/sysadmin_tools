@@ -17,26 +17,35 @@ $BASE_URL    = "https://raw.githubusercontent.com/$GITHUB_USER/$GITHUB_REPO/$GIT
 $INSTALL_DIR = "$env:LOCALAPPDATA\RemoteShellAgent"
 
 # ── Поиск Python в системе ───────────────────────────────────────────────────
-function Find-Python {
-    # 1. В PATH
-    $p = Get-Command python -ErrorAction SilentlyContinue
-    if ($p) { return $p.Source }
+function Test-PythonWorks($exe) {
+    # Проверяем что python реально запускается (не заглушка Microsoft Store)
+    if (-not (Test-Path $exe)) { return $false }
+    try {
+        $out = & $exe --version 2>&1
+        return ($out -match "Python 3")
+    } catch {
+        return $false
+    }
+}
 
-    # 2. Стандартные папки установки
+function Find-Python {
+    # 1. Стандартные папки установки (сначала — надёжнее чем PATH)
     $candidates = @(
+        "$env:LOCALAPPDATA\Programs\Python\Python314\python.exe",
         "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
         "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe",
         "$env:LOCALAPPDATA\Programs\Python\Python310\python.exe",
-        "$env:LOCALAPPDATA\Programs\Python\Python314\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python39\python.exe",
         "C:\Python312\python.exe",
         "C:\Python311\python.exe",
-        "C:\Python310\python.exe"
+        "C:\Python310\python.exe",
+        "C:\Python39\python.exe"
     )
     foreach ($c in $candidates) {
-        if (Test-Path $c) { return $c }
+        if (Test-PythonWorks $c) { return $c }
     }
 
-    # 3. Поиск через реестр
+    # 2. Через реестр
     $regPaths = @(
         "HKCU:\Software\Python\PythonCore",
         "HKLM:\Software\Python\PythonCore",
@@ -45,16 +54,22 @@ function Find-Python {
     foreach ($rp in $regPaths) {
         if (Test-Path $rp) {
             Get-ChildItem $rp | ForEach-Object {
-                $exe = "$($_.PSPath)\InstallPath" 
-                if (Test-Path $exe) {
-                    $dir = (Get-ItemProperty $exe)."(default)"
-                    if ($dir -and (Test-Path "$dir\python.exe")) {
-                        return "$dir\python.exe"
+                $installKey = Join-Path $_.PSPath "InstallPath"
+                if (Test-Path $installKey) {
+                    $dir = (Get-ItemProperty $installKey)."(default)"
+                    if ($dir) {
+                        $exe = Join-Path $dir "python.exe"
+                        if (Test-PythonWorks $exe) { return $exe }
                     }
                 }
             }
         }
     }
+
+    # 3. В PATH — последним, чтобы не поймать заглушку Store
+    $p = Get-Command python -ErrorAction SilentlyContinue
+    if ($p -and (Test-PythonWorks $p.Source)) { return $p.Source }
+
     return $null
 }
 
@@ -106,6 +121,11 @@ if (-not $PY_EXE) {
             -Wait
         Remove-Item $installer -ErrorAction SilentlyContinue
         $PY_EXE = "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe"
+        if (-not (Test-PythonWorks $PY_EXE)) {
+            Write-Err "Python установлен но не запускается. Скачайте вручную: https://python.org/downloads"
+            Read-Host "Нажмите Enter для выхода"
+            exit 1
+        }
         Write-OK "Python установлен: $PY_EXE"
     } catch {
         Write-Err "Не удалось установить Python: $_"
