@@ -20,6 +20,13 @@ import socket
 sys.path.insert(0, os.path.dirname(__file__))
 import remote_shell as rs
 
+# Импортируем сервер трансляции (если доступен)
+try:
+    import screen_server as ss
+    SCREEN_AVAILABLE = True
+except ImportError:
+    SCREEN_AVAILABLE = False
+
 
 class AgentGUI:
     def __init__(self, root: tk.Tk):
@@ -150,6 +157,14 @@ class AgentGUI:
         )
         self.btn_stop.pack(side=tk.LEFT, padx=6)
 
+        self.btn_screen = tk.Button(
+            btn_frame, text="🖥️  Трансляция экрана",
+            bg="#cba6f7", fg="#1e1e2e",
+            command=self._toggle_screen, **btn_cfg,
+            state=tk.DISABLED
+        )
+        self.btn_screen.pack(side=tk.LEFT, padx=6)
+
         tk.Button(
             btn_frame, text="🗑  Очистить лог",
             bg="#313244", fg=FG,
@@ -271,6 +286,7 @@ class AgentGUI:
             messagebox.showwarning("Слабый пароль", "Пароль должен быть не короче 4 символов.")
             return
 
+        self._password = password  # сохраняем для screen_server
         port = rs.DEFAULT_PORT
         self.is_running = True
 
@@ -285,6 +301,7 @@ class AgentGUI:
         self.lbl_status.configure(text="▶ Запущен", fg="#a6e3a1")
         self.btn_start.configure(state=tk.DISABLED)
         self.btn_stop.configure(state=tk.NORMAL)
+        self.btn_screen.configure(state=tk.NORMAL)
         self.hint_lbl.configure(
             text=f"📡  Скажи администратору: IP = {local_ip}  |  Порт = {port}  |  Пароль = {password}"
         )
@@ -303,6 +320,44 @@ class AgentGUI:
             f"Команда для подключения:\n"
             f"python remote_shell.py --client --host {local_ip} --password {password}"
         )
+
+    def _toggle_screen(self):
+        if not SCREEN_AVAILABLE:
+            messagebox.showwarning(
+                "Нет модуля",
+                "Установи зависимости для трансляции экрана:\n\n"
+                "pip install mss Pillow pynput"
+            )
+            return
+
+        if not hasattr(self, "_screen_running") or not self._screen_running:
+            # Запускаем трансляцию
+            pw = getattr(self, "_password", "")
+            if not pw:
+                messagebox.showwarning("Нет пароля", "Сначала запусти основной сервер.")
+                return
+            self._screen_running = True
+            ss._running = True
+            self._screen_thread = threading.Thread(
+                target=ss.run_screen_server,
+                args=(9998, pw, self._on_server_event),
+                daemon=True
+            )
+            self._screen_thread.start()
+            self.btn_screen.configure(text="⏹  Остановить трансляцию", bg="#f38ba8")
+            self._log("🖥️  Трансляция экрана запущена (порт 9998)", "server")
+            local_ip = self._get_local_ip()
+            messagebox.showinfo(
+                "Трансляция запущена",
+                f"Администратор подключается командой:\n\n"
+                f"python screen_client.py --host {local_ip} --password ПАРОЛЬ"
+            )
+        else:
+            # Останавливаем
+            self._screen_running = False
+            ss.stop_server()
+            self.btn_screen.configure(text="🖥️  Трансляция экрана", bg="#cba6f7")
+            self._log("⏹  Трансляция экрана остановлена.", "server")
 
     def _toggle_block(self):
         rs._server_state["blocked"] = not rs._server_state["blocked"]
