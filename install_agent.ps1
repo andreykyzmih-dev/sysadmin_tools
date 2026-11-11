@@ -139,13 +139,13 @@ if (-not $PY_EXE) {
 }
 
 # ── psutil ───────────────────────────────────────────────────────────────────
-Write-Step "Установка зависимостей (psutil)..."
-& $PY_EXE -m pip install psutil --quiet --disable-pip-version-check
-Write-OK "psutil готов."
+Write-Step "Установка зависимостей..."
+& $PY_EXE -m pip install psutil mss Pillow pynput --quiet --disable-pip-version-check
+Write-OK "Зависимости установлены."
 
 # ── Скачиваем скрипты с GitHub ───────────────────────────────────────────────
 Write-Step "Скачивание файлов с GitHub..."
-$files = @("remote_shell.py", "agent_gui.py")
+$files = @("remote_shell.py", "agent_gui.py", "screen_server.py")
 
 foreach ($f in $files) {
     $url = "$BASE_URL/$f"
