@@ -182,7 +182,8 @@ class ScreenViewer:
                 self._recv_frames()
 
             except Exception as e:
-                self.root.after(0, lambda: self._on_error(str(e)))
+                err_msg = str(e)
+                self.root.after(0, lambda m=err_msg: self._on_error(m))
 
         threading.Thread(target=do_connect, daemon=True).start()
 
