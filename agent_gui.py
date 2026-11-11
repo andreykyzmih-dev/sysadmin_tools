@@ -32,8 +32,8 @@ class AgentGUI:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title("🖥️  Remote Shell — Панель управления")
-        self.root.geometry("800x600")
-        self.root.resizable(True, True)
+        self.root.geometry("980x580")
+        self.root.minsize(900, 500)
         self.root.configure(bg="#1e1e2e")
 
         self.server_thread = None
@@ -123,47 +123,47 @@ class AgentGUI:
         btn_frame = tk.Frame(self.root, bg=BG, pady=8)
         btn_frame.pack(fill=tk.X, padx=10)
 
-        btn_cfg = {"font": ("Segoe UI", 10, "bold"), "relief": tk.FLAT,
-                   "cursor": "hand2", "padx": 16, "pady": 8}
+        btn_cfg = {"font": ("Segoe UI", 9), "relief": tk.FLAT,
+                   "cursor": "hand2", "padx": 8, "pady": 6}
 
         self.btn_start = tk.Button(
-            btn_frame, text="▶  Запустить сервер",
+            btn_frame, text="▶ Запустить",
             bg=GREEN, fg="#1e1e2e",
             command=self._start_server, **btn_cfg
         )
-        self.btn_start.pack(side=tk.LEFT, padx=(0, 6))
+        self.btn_start.pack(side=tk.LEFT, padx=(0, 4))
 
         self.btn_block = tk.Button(
-            btn_frame, text="🔒  Заблокировать команды",
+            btn_frame, text="🔒 Блокировать",
             bg=YELLOW, fg="#1e1e2e",
             command=self._toggle_block, **btn_cfg,
             state=tk.DISABLED
         )
-        self.btn_block.pack(side=tk.LEFT, padx=6)
+        self.btn_block.pack(side=tk.LEFT, padx=4)
 
         self.btn_kick = tk.Button(
-            btn_frame, text="⛔  Выгнать клиента",
+            btn_frame, text="⛔ Выгнать",
             bg=RED, fg="#1e1e2e",
             command=self._kick_client, **btn_cfg,
             state=tk.DISABLED
         )
-        self.btn_kick.pack(side=tk.LEFT, padx=6)
+        self.btn_kick.pack(side=tk.LEFT, padx=4)
 
         self.btn_stop = tk.Button(
-            btn_frame, text="■  Остановить сервер",
+            btn_frame, text="■ Стоп",
             bg="#45475a", fg=FG,
             command=self._stop_server, **btn_cfg,
             state=tk.DISABLED
         )
-        self.btn_stop.pack(side=tk.LEFT, padx=6)
+        self.btn_stop.pack(side=tk.LEFT, padx=4)
 
         self.btn_screen = tk.Button(
-            btn_frame, text="🖥️  Трансляция экрана",
+            btn_frame, text="🖥️ Трансляция",
             bg="#cba6f7", fg="#1e1e2e",
             command=self._toggle_screen, **btn_cfg,
             state=tk.DISABLED
         )
-        self.btn_screen.pack(side=tk.LEFT, padx=6)
+        self.btn_screen.pack(side=tk.LEFT, padx=4)
 
         tk.Button(
             btn_frame, text="🗑  Очистить лог",
