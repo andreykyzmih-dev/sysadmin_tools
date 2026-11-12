@@ -181,9 +181,9 @@ try {
     $shortcutPath = "$env:USERPROFILE\Desktop\RemoteShell Agent.lnk"
     $wsh = New-Object -ComObject WScript.Shell
     $sc  = $wsh.CreateShortcut($shortcutPath)
-    $sc.TargetPath       = $PY_EXE
+    $sc.TargetPath       = [string]($PY_EXE | Select-Object -First 1)
     $sc.Arguments        = "`"$INSTALL_DIR\agent_gui.py`" --password `"$agentPass`""
-    $sc.WorkingDirectory = $INSTALL_DIR
+    $sc.WorkingDirectory = [string]$INSTALL_DIR
     $sc.Description      = "Remote Shell Agent"
     $sc.Save()
     Write-OK "Ярлык создан."
@@ -214,6 +214,7 @@ Write-Host "    Пароль   : $agentPass" -ForegroundColor Cyan
 Write-Host ""
 
 # ── Запуск GUI ───────────────────────────────────────────────────────────────
-Start-Process -FilePath $PY_EXE `
+$pyExeStr = [string]($PY_EXE | Select-Object -First 1)
+Start-Process -FilePath $pyExeStr `
     -ArgumentList "`"$INSTALL_DIR\agent_gui.py`" --password `"$agentPass`"" `
-    -WorkingDirectory $INSTALL_DIR
+    -WorkingDirectory ([string]$INSTALL_DIR)
