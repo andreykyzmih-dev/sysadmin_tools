@@ -28,48 +28,32 @@ function Test-PythonWorks($exe) {
     }
 }
 
-function Find-Python {
-    # 1. Стандартные папки установки (сначала — надёжнее чем PATH)
+function Find-Python312 {
+    # Ищем ТОЛЬКО Python 3.12 — стабильная версия для нашего проекта
     $candidates = @(
-        "$env:LOCALAPPDATA\Programs\Python\Python314\python.exe",
         "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
-        "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe",
-        "$env:LOCALAPPDATA\Programs\Python\Python310\python.exe",
-        "$env:LOCALAPPDATA\Programs\Python\Python39\python.exe",
         "C:\Python312\python.exe",
-        "C:\Python311\python.exe",
-        "C:\Python310\python.exe",
-        "C:\Python39\python.exe"
+        "C:\Program Files\Python312\python.exe",
+        "C:\Program Files (x86)\Python312\python.exe"
     )
     foreach ($c in $candidates) {
         if (Test-PythonWorks $c) { return $c }
     }
-
-    # 2. Через реестр
+    # Реестр — только 3.12
     $regPaths = @(
-        "HKCU:\Software\Python\PythonCore",
-        "HKLM:\Software\Python\PythonCore",
-        "HKLM:\Software\Wow6432Node\Python\PythonCore"
+        "HKCU:\Software\Python\PythonCore\3.12\InstallPath",
+        "HKLM:\Software\Python\PythonCore\3.12\InstallPath",
+        "HKLM:\Software\Wow6432Node\Python\PythonCore\3.12\InstallPath"
     )
     foreach ($rp in $regPaths) {
         if (Test-Path $rp) {
-            Get-ChildItem $rp | ForEach-Object {
-                $installKey = Join-Path $_.PSPath "InstallPath"
-                if (Test-Path $installKey) {
-                    $dir = (Get-ItemProperty $installKey)."(default)"
-                    if ($dir) {
-                        $exe = Join-Path $dir "python.exe"
-                        if (Test-PythonWorks $exe) { return $exe }
-                    }
-                }
+            $dir = (Get-ItemProperty $rp)."(default)"
+            if ($dir) {
+                $exe = Join-Path $dir "python.exe"
+                if (Test-PythonWorks $exe) { return $exe }
             }
         }
     }
-
-    # 3. В PATH — последним, чтобы не поймать заглушку Store
-    $p = Get-Command python -ErrorAction SilentlyContinue
-    if ($p -and (Test-PythonWorks $p.Source)) { return $p.Source }
-
     return $null
 }
 
@@ -104,39 +88,50 @@ Write-Step "Создание папки: $INSTALL_DIR"
 New-Item -ItemType Directory -Force -Path $INSTALL_DIR | Out-Null
 Write-OK "Готово."
 
-# ── Python ───────────────────────────────────────────────────────────────────
-Write-Step "Поиск Python..."
-$PY_EXE = Find-Python
+# ── Python 3.12 ──────────────────────────────────────────────────────────────
+Write-Step "Поиск Python 3.12..."
+$PY_EXE = Find-Python312
 
 if (-not $PY_EXE) {
-    Write-Warn "Python не найден. Устанавливаем Python 3.12..."
-    $installer = "$env:TEMP\python_installer.exe"
+    # Проверяем есть ли другая версия Python
+    $otherPy = Get-Command python -ErrorAction SilentlyContinue
+    if ($otherPy -and (Test-PythonWorks $otherPy.Source)) {
+        $otherVer = & $otherPy.Source --version 2>&1
+        Write-Warn "Найден $otherVer, но нам нужна версия 3.12. Устанавливаем Python 3.12..."
+    } else {
+        Write-Warn "Python не найден. Устанавливаем Python 3.12..."
+    }
+
+    $installer = "$env:TEMP\python312_installer.exe"
     $pyUrl = "https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe"
     Write-Host "  Скачивание (~25 МБ)..." -ForegroundColor Gray
     try {
         Invoke-WebRequest -Uri $pyUrl -OutFile $installer -UseBasicParsing
-        Write-Host "  Установка Python..." -ForegroundColor Gray
+        Write-Host "  Установка Python 3.12..." -ForegroundColor Gray
         Start-Process -FilePath $installer `
             -ArgumentList "/quiet InstallAllUsers=0 PrependPath=0 Include_launcher=1" `
             -Wait
         Remove-Item $installer -ErrorAction SilentlyContinue
         $PY_EXE = "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe"
         if (-not (Test-PythonWorks $PY_EXE)) {
-            Write-Err "Python установлен но не запускается. Скачайте вручную: https://python.org/downloads"
+            Write-Err "Python 3.12 установлен но не запускается."
             Read-Host "Нажмите Enter для выхода"
             exit 1
         }
-        Write-OK "Python установлен: $PY_EXE"
+        Write-OK "Python 3.12 установлен: $PY_EXE"
     } catch {
-        Write-Err "Не удалось установить Python: $_"
-        Write-Host "  Скачайте вручную: https://python.org/downloads" -ForegroundColor Yellow
+        Write-Err "Не удалось установить Python 3.12: $_"
+        Write-Host "  Скачайте вручную: https://python.org/downloads/release/python-31210" -ForegroundColor Yellow
         Read-Host "  Нажмите Enter для выхода"
         exit 1
     }
 } else {
-    $ver = & $PY_EXE --version 2>&1
-    Write-OK "Найден: $ver  ($PY_EXE)"
+    $ver = & ([string]($PY_EXE | Select-Object -First 1)) --version 2>&1
+    Write-OK "Найден: $ver"
 }
+
+# Приводим к строке на всякий случай
+$PY_EXE = [string]($PY_EXE | Select-Object -First 1)
 
 # ── psutil ───────────────────────────────────────────────────────────────────
 Write-Step "Установка зависимостей..."
