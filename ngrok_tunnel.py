@@ -15,8 +15,9 @@ import urllib.request
 import urllib.error
 
 NGROK_API      = "http://localhost:4040/api/tunnels"
+NGROK_AUTHTOKEN = ""  # задаётся через: ngrok config add-authtoken ВАШ_ТОКЕН
 NGROK_DOWNLOAD = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip"
-NGROK_EXE      = os.path.join(os.path.dirname(__file__), "ngrok.exe")
+NGROK_EXE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ngrok.exe")
 
 # Relay сервер — публичный адрес где хранятся коды
 # Используем бесплатный pythonanywhere или свой VPS
