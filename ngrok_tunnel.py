@@ -1,187 +1,163 @@
 #!/usr/bin/env python3
 """
-ngrok_tunnel.py — Создаёт публичный туннель через ngrok и регистрирует код.
+ngrok_tunnel.py — Публичный туннель через ngrok + хранение кода на paste.rs.
 
-Используется agent_gui.py для создания публичного адреса.
+Друг нажимает "Создать код" → ngrok создаёт туннель → 
+код сохраняется на paste.rs → ты вводишь код → подключаешься.
+
+paste.rs — бесплатный анонимный сервис, без регистрации.
 """
 
 import subprocess
-import threading
 import time
 import json
-import sys
 import os
 import urllib.request
 import urllib.error
+import random
+import string
+import zipfile
 
-NGROK_API      = "http://localhost:4040/api/tunnels"
-NGROK_AUTHTOKEN = ""  # задаётся через: ngrok config add-authtoken ВАШ_ТОКЕН
-NGROK_DOWNLOAD = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip"
-NGROK_EXE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ngrok.exe")
-
-# Relay сервер — публичный адрес где хранятся коды
-# Используем бесплатный pythonanywhere или свой VPS
-# Пока используем локальный для тестирования
-RELAY_URL = "https://andreykyzmih.pythonanywhere.com"
+NGROK_TOKEN   = "3M1AGY5xoO5LvMdSQIzjMcjuVlj_85vSFUG61hNk8mF5fUD7i"
+NGROK_API     = "http://localhost:4040/api/tunnels"
+NGROK_ZIP_URL = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip"
+NGROK_EXE     = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ngrok.exe")
+PASTE_URL     = "https://paste.rs"
 
 
-def download_ngrok() -> bool:
-    """Скачивает ngrok если не установлен."""
+# ── ngrok ─────────────────────────────────────────────────────────────────────
+
+def _get_ngrok_exe() -> str:
     if os.path.exists(NGROK_EXE):
-        return True
+        return NGROK_EXE
     print("[ngrok] Скачиваю ngrok...")
-    try:
-        import zipfile
-        import io
-        zip_path = os.path.join(os.path.dirname(__file__), "ngrok.zip")
-        urllib.request.urlretrieve(NGROK_DOWNLOAD, zip_path)
-        with zipfile.ZipFile(zip_path, "r") as z:
-            z.extractall(os.path.dirname(__file__))
-        os.remove(zip_path)
-        print("[ngrok] ngrok скачан.")
-        return True
-    except Exception as e:
-        print(f"[ngrok] Ошибка скачивания: {e}")
-        return False
+    zip_path = os.path.join(os.path.dirname(NGROK_EXE), "ngrok.zip")
+    urllib.request.urlretrieve(NGROK_ZIP_URL, zip_path)
+    with zipfile.ZipFile(zip_path, "r") as z:
+        z.extractall(os.path.dirname(NGROK_EXE))
+    os.remove(zip_path)
+    print("[ngrok] Готов.")
+    return NGROK_EXE
 
 
-def start_ngrok(port: int) -> subprocess.Popen | None:
-    """Запускает ngrok туннель для порта."""
-    if not os.path.exists(NGROK_EXE):
-        if not download_ngrok():
-            return None
-    try:
-        proc = subprocess.Popen(
-            [NGROK_EXE, "tcp", str(port)],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        time.sleep(2)  # ждём пока ngrok поднимется
-        return proc
-    except Exception as e:
-        print(f"[ngrok] Ошибка запуска: {e}")
-        return None
+def _configure_token():
+    exe = _get_ngrok_exe()
+    subprocess.run([exe, "config", "add-authtoken", NGROK_TOKEN],
+                   capture_output=True)
 
 
-def get_ngrok_url(port: int, retries: int = 10) -> str | None:
-    """Получает публичный URL туннеля через ngrok API."""
-    for i in range(retries):
+def _start_ngrok(port: int) -> subprocess.Popen:
+    exe = _get_ngrok_exe()
+    _configure_token()
+    return subprocess.Popen(
+        [exe, "tcp", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
+def _get_public_url(retries=15) -> str | None:
+    for _ in range(retries):
         try:
             with urllib.request.urlopen(NGROK_API, timeout=3) as r:
                 data = json.loads(r.read())
-                for tunnel in data.get("tunnels", []):
-                    addr = tunnel.get("public_url", "")
-                    if addr.startswith("tcp://"):
-                        return addr  # tcp://0.tcp.ngrok.io:12345
+                for t in data.get("tunnels", []):
+                    url = t.get("public_url", "")
+                    if url.startswith("tcp://"):
+                        return url
         except Exception:
             pass
         time.sleep(1)
     return None
 
 
-def register_code(host: str, port: int, screen_port: int) -> str | None:
-    """Регистрирует сессию на relay сервере и получает код."""
+# ── paste.rs хранилище кодов ──────────────────────────────────────────────────
+
+def _save_to_paste(host: str, port: int, screen_port: int) -> str | None:
+    """Сохраняет данные на paste.rs и возвращает ID (короткий код)."""
+    data = json.dumps({
+        "host":        host,
+        "port":        port,
+        "screen_port": screen_port,
+    }).encode("utf-8")
     try:
-        payload = json.dumps({
-            "host":        host,
-            "port":        port,
-            "screen_port": screen_port,
-        }).encode("utf-8")
         req = urllib.request.Request(
-            f"{RELAY_URL}/register",
-            data=payload,
-            headers={"Content-Type": "application/json"},
+            PASTE_URL,
+            data=data,
+            headers={"Content-Type": "text/plain"},
             method="POST"
         )
         with urllib.request.urlopen(req, timeout=10) as r:
-            data = json.loads(r.read())
-            return data.get("code")
+            # paste.rs возвращает URL вида https://paste.rs/ABC
+            result = r.read().decode("utf-8").strip()
+            # Берём только ID — последняя часть URL
+            paste_id = result.rstrip("/").split("/")[-1]
+            return paste_id
     except Exception as e:
-        print(f"[relay] Ошибка регистрации: {e}")
+        print(f"[paste] Ошибка сохранения: {e}")
         return None
-
-
-def unregister_code(code: str):
-    """Удаляет сессию с relay сервера."""
-    try:
-        payload = json.dumps({"code": code}).encode("utf-8")
-        req = urllib.request.Request(
-            f"{RELAY_URL}/unregister",
-            data=payload,
-            headers={"Content-Type": "application/json"},
-            method="POST"
-        )
-        urllib.request.urlopen(req, timeout=5)
-    except Exception:
-        pass
 
 
 def resolve_code(code: str) -> dict | None:
-    """Получает адрес подключения по коду."""
-    code = code.strip().replace(" ", "")
-    # Добавляем дефис если нет
-    if len(code) == 6 and "-" not in code:
-        code = f"{code[:3]}-{code[3:]}"
+    """Получает данные подключения по коду (paste ID)."""
+    code = code.strip().replace(" ", "").replace("-", "")
     try:
-        url = f"{RELAY_URL}/get?code={code}"
+        url = f"{PASTE_URL}/{code}"
         with urllib.request.urlopen(url, timeout=10) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            return None
-        raise
+            data = json.loads(r.read().decode("utf-8"))
+            return data
     except Exception as e:
-        print(f"[relay] Ошибка получения кода: {e}")
+        print(f"[paste] Ошибка получения кода: {e}")
         return None
 
 
-class NgrokSession:
-    """Управляет ngrok туннелем и кодом подключения."""
+# ── Сессия ────────────────────────────────────────────────────────────────────
 
+class NgrokSession:
     def __init__(self):
-        self.proc_shell  = None  # ngrok для Remote Shell (9999)
-        self.proc_screen = None  # ngrok для Screen Share (9998)
-        self.code        = None
-        self.shell_host  = None
-        self.shell_port  = None
-        self.screen_port = None
+        self.proc       = None
+        self.code       = None
+        self.host       = None
+        self.port       = None
 
     def start(self, shell_port=9999, screen_port=9998) -> str | None:
-        """Запускает туннели и регистрирует код. Возвращает код."""
-        print("[ngrok] Запуск туннеля для терминала...")
-        self.proc_shell = start_ngrok(shell_port)
-        if not self.proc_shell:
+        """Запускает туннель и возвращает код подключения."""
+        try:
+            print("[ngrok] Запускаю туннель...")
+            self.proc = _start_ngrok(shell_port)
+            time.sleep(3)
+
+            url = _get_public_url()
+            if not url:
+                print("[ngrok] Не удалось получить URL туннеля.")
+                self.stop()
+                return None
+
+            # Парсим tcp://X.tcp.ngrok.io:12345
+            addr = url.replace("tcp://", "")
+            self.host, port_str = addr.rsplit(":", 1)
+            self.port = int(port_str)
+
+            print(f"[ngrok] Туннель: {self.host}:{self.port}")
+
+            # Сохраняем на paste.rs
+            print("[ngrok] Сохраняю код на paste.rs...")
+            paste_id = _save_to_paste(self.host, self.port, screen_port)
+            if not paste_id:
+                self.stop()
+                return None
+
+            self.code = paste_id
+            print(f"[ngrok] Код подключения: {self.code}")
+            return self.code
+
+        except Exception as e:
+            print(f"[ngrok] Ошибка: {e}")
+            self.stop()
             return None
-
-        url = get_ngrok_url(shell_port)
-        if not url:
-            print("[ngrok] Не удалось получить URL туннеля.")
-            return None
-
-        # Парсим tcp://0.tcp.ngrok.io:12345
-        addr = url.replace("tcp://", "")
-        host, port_str = addr.rsplit(":", 1)
-        self.shell_host = host
-        self.shell_port = int(port_str)
-
-        print(f"[ngrok] Туннель: {host}:{self.shell_port}")
-
-        # Регистрируем на relay
-        self.code = register_code(host, self.shell_port, screen_port)
-        if not self.code:
-            print("[ngrok] Не удалось зарегистрировать код на relay сервере.")
-            # Работаем без relay — показываем адрес напрямую
-            return None
-
-        print(f"[ngrok] Код подключения: {self.code}")
-        return self.code
 
     def stop(self):
-        """Останавливает туннели и удаляет код."""
-        if self.code:
-            unregister_code(self.code)
-        if self.proc_shell:
-            self.proc_shell.terminate()
-        if self.proc_screen:
-            self.proc_screen.terminate()
+        if self.proc:
+            self.proc.terminate()
         self.code = None
+        self.proc = None
