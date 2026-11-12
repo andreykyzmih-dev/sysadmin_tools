@@ -87,11 +87,13 @@ Write-Host ""
 Write-Host "  Пароль: $password" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  [Терминал]:" -ForegroundColor Cyan
-Write-Host "  & `"`$env:LOCALAPPDATA\Programs\Python\Python312\python.exe`" `"C:\Users\andre\OneDrive\Desktop\kiro prajectdss\sysadmin-tools\remote_shell.py`" --client --host $shellHost --port $shellPort --password $password" -ForegroundColor White
+$cmd1 = "python `"$INSTALL_DIR\remote_shell.py`" --client --host $shellHost --port $shellPort --password $password"
+Write-Host "  $cmd1" -ForegroundColor White
 Write-Host ""
 if ($screenPort) {
     Write-Host "  [Экран]:" -ForegroundColor Cyan
-    Write-Host "  & `"`$env:LOCALAPPDATA\Programs\Python\Python312\python.exe`" `"C:\Users\andre\OneDrive\Desktop\kiro prajectdss\sysadmin-tools\screen_client.py`" --host $screenHost --port $screenPort --password $password" -ForegroundColor White
+    $cmd2 = "python `"$INSTALL_DIR\screen_client.py`" --host $screenHost --port $screenPort --password $password"
+    Write-Host "  $cmd2" -ForegroundColor White
     Write-Host ""
 }
 Write-Host "  ╚══════════════════════════════════════════════════════════════╝" -ForegroundColor Green
