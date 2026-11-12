@@ -133,7 +133,33 @@ if (-not $PY_EXE) {
 # Приводим к строке на всякий случай
 $PY_EXE = [string]($PY_EXE | Select-Object -First 1)
 
-# ── psutil ───────────────────────────────────────────────────────────────────
+# ── Установка ngrok ──────────────────────────────────────────────────────────
+Write-Step "Установка ngrok..."
+$ngrokExe = "$INSTALL_DIR\ngrok.exe"
+if (-not (Test-Path $ngrokExe)) {
+    try {
+        # Скачиваем ngrok
+        $ngrokZip = "$env:TEMP\ngrok.zip"
+        Write-Host "  Скачивание ngrok..." -ForegroundColor Gray
+        Invoke-WebRequest -Uri "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip" -OutFile $ngrokZip -UseBasicParsing
+        # Распаковываем
+        Expand-Archive -Path $ngrokZip -DestinationPath $INSTALL_DIR -Force
+        Remove-Item $ngrokZip -ErrorAction SilentlyContinue
+        Write-OK "ngrok установлен."
+    } catch {
+        Write-Warn "Не удалось скачать ngrok: $_"
+        Write-Warn "Скачай вручную: https://ngrok.com/download"
+    }
+} else {
+    Write-OK "ngrok уже установлен."
+}
+
+# Добавляем authtoken
+if (Test-Path $ngrokExe) {
+    Write-Host "  Настройка ngrok authtoken..." -ForegroundColor Gray
+    & $ngrokExe config add-authtoken "3M1A6Y5xoO5LvMdSQIzjMejuVlj_8SvSFUG6lnNk8mF5fUD7l" 2>&1 | Out-Null
+    Write-OK "ngrok настроен."
+}
 Write-Step "Установка зависимостей..."
 & $PY_EXE -m pip install psutil mss Pillow pynput --quiet --disable-pip-version-check
 Write-OK "Зависимости установлены."
