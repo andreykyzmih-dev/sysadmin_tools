@@ -16,16 +16,20 @@ import sys
 import os
 import socket
 
-# Импортируем серверную логику из remote_shell.py
 sys.path.insert(0, os.path.dirname(__file__))
 import remote_shell as rs
 
-# Импортируем сервер трансляции (если доступен)
 try:
     import screen_server as ss
     SCREEN_AVAILABLE = True
 except ImportError:
     SCREEN_AVAILABLE = False
+
+try:
+    import ngrok_tunnel as ng
+    NGROK_AVAILABLE = True
+except ImportError:
+    NGROK_AVAILABLE = False
 
 
 class AgentGUI:
@@ -171,6 +175,24 @@ class AgentGUI:
             command=self._clear_log, **btn_cfg
         ).pack(side=tk.RIGHT)
 
+        # Кнопка генерации кода (ngrok)
+        self.btn_code = tk.Button(
+            btn_frame, text="🌐 Создать код",
+            bg="#89b4fa", fg="#1e1e2e",
+            command=self._generate_code, **btn_cfg,
+            state=tk.DISABLED
+        )
+        self.btn_code.pack(side=tk.RIGHT, padx=4)
+
+        # Показ кода подключения
+        self.lbl_code = tk.Label(
+            self.root,
+            text="",
+            font=("Consolas", 18, "bold"),
+            bg="#1e1e2e", fg="#f9e2af"
+        )
+        self.lbl_code.pack(pady=(0, 2))
+
         # ── Строка подсказки ──
         hint = tk.Label(
             self.root,
@@ -302,6 +324,7 @@ class AgentGUI:
         self.btn_start.configure(state=tk.DISABLED)
         self.btn_stop.configure(state=tk.NORMAL)
         self.btn_screen.configure(state=tk.NORMAL)
+        self.btn_code.configure(state=tk.NORMAL)
         self.hint_lbl.configure(
             text=f"📡  Скажи администратору: IP = {local_ip}  |  Порт = {port}  |  Пароль = {password}"
         )
@@ -319,6 +342,50 @@ class AgentGUI:
             f"  Пароль   : {password}\n\n"
             f"Команда для подключения:\n"
             f"python remote_shell.py --client --host {local_ip} --password {password}"
+        )
+
+    def _generate_code(self):
+        """Создаёт публичный код подключения через ngrok."""
+        if not NGROK_AVAILABLE:
+            messagebox.showwarning("Нет модуля",
+                "ngrok_tunnel.py не найден в папке агента.")
+            return
+
+        self.btn_code.configure(state=tk.DISABLED, text="⏳ Создаём...")
+        self._log("🌐 Создаём публичный код через ngrok...", "server")
+        self._ngrok = ng.NgrokSession()
+
+        def do_ngrok():
+            code = self._ngrok.start()
+            if code:
+                self.root.after(0, lambda c=code: self._on_code_ready(c))
+            else:
+                # ngrok не смог — показываем локальный IP
+                local_ip = self._get_local_ip()
+                self.root.after(0, lambda: self._on_code_failed(local_ip))
+
+        threading.Thread(target=do_ngrok, daemon=True).start()
+
+    def _on_code_ready(self, code: str):
+        self.lbl_code.configure(text=f"Код: {code}")
+        self.btn_code.configure(text="🔄 Обновить код", state=tk.NORMAL)
+        self._log(f"✅ Код создан: {code}", "connect")
+        messagebox.showinfo(
+            "Код подключения готов!",
+            f"Передай администратору этот код:\n\n"
+            f"        {code}\n\n"
+            f"Он вводит его командой:\n"
+            f"python connect.py --code {code}"
+        )
+
+    def _on_code_failed(self, local_ip: str):
+        self.btn_code.configure(text="🌐 Создать код", state=tk.NORMAL)
+        self._log("⚠️ ngrok недоступен. Используй локальный IP.", "blocked")
+        messagebox.showwarning(
+            "ngrok недоступен",
+            f"Не удалось создать публичный код.\n\n"
+            f"Используй локальный IP (только одна сеть):\n"
+            f"IP: {local_ip}  Порт: 9999"
         )
 
     def _toggle_screen(self):
