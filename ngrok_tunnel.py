@@ -22,7 +22,7 @@ NGROK_TOKEN   = "3M1AGY5xoO5LvMdSQIzjMcjuVlj_85vSFUG61hNk8mF5fUD7i"
 NGROK_API     = "http://localhost:4040/api/tunnels"
 NGROK_ZIP_URL = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip"
 NGROK_EXE     = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ngrok.exe")
-PASTE_URL     = "https://paste.rs"
+RELAY_URL     = "https://sysadmin-tools.onrender.com"
 
 
 # ── ngrok ─────────────────────────────────────────────────────────────────────
@@ -71,10 +71,10 @@ def _get_public_url(retries=15) -> str | None:
     return None
 
 
-# ── paste.rs хранилище кодов ──────────────────────────────────────────────────
+# ── Relay сервер ─────────────────────────────────────────────────────────────
 
-def _save_to_paste(host: str, port: int, screen_port: int) -> str | None:
-    """Сохраняет данные на paste.rs и возвращает ID (короткий код)."""
+def _save_to_relay(host: str, port: int, screen_port: int) -> str | None:
+    """Зберігає дані на relay сервері і повертає код."""
     data = json.dumps({
         "host":        host,
         "port":        port,
@@ -82,32 +82,30 @@ def _save_to_paste(host: str, port: int, screen_port: int) -> str | None:
     }).encode("utf-8")
     try:
         req = urllib.request.Request(
-            PASTE_URL,
+            f"{RELAY_URL}/register",
             data=data,
-            headers={"Content-Type": "text/plain"},
+            headers={"Content-Type": "application/json"},
             method="POST"
         )
         with urllib.request.urlopen(req, timeout=10) as r:
-            # paste.rs возвращает URL вида https://paste.rs/ABC
-            result = r.read().decode("utf-8").strip()
-            # Берём только ID — последняя часть URL
-            paste_id = result.rstrip("/").split("/")[-1]
-            return paste_id
+            result = json.loads(r.read())
+            return result.get("code")
     except Exception as e:
-        print(f"[paste] Ошибка сохранения: {e}")
+        print(f"[relay] Помилка збереження: {e}")
         return None
 
 
 def resolve_code(code: str) -> dict | None:
-    """Получает данные подключения по коду (paste ID)."""
-    code = code.strip().replace(" ", "").replace("-", "")
+    """Отримує дані підключення за кодом."""
+    code = code.strip().replace(" ", "")
+    if len(code) == 6 and "-" not in code:
+        code = f"{code[:3]}-{code[3:]}"
     try:
-        url = f"{PASTE_URL}/{code}"
+        url = f"{RELAY_URL}/get?code={code}"
         with urllib.request.urlopen(url, timeout=10) as r:
-            data = json.loads(r.read().decode("utf-8"))
-            return data
+            return json.loads(r.read())
     except Exception as e:
-        print(f"[paste] Ошибка получения кода: {e}")
+        print(f"[relay] Помилка отримання коду: {e}")
         return None
 
 
@@ -140,14 +138,14 @@ class NgrokSession:
 
             print(f"[ngrok] Туннель: {self.host}:{self.port}")
 
-            # Сохраняем на paste.rs
-            print("[ngrok] Сохраняю код на paste.rs...")
-            paste_id = _save_to_paste(self.host, self.port, screen_port)
-            if not paste_id:
+            # Зберігаємо на relay сервері
+            print("[ngrok] Зберігаю код на relay сервері...")
+            code = _save_to_relay(self.host, self.port, screen_port)
+            if not code:
                 self.stop()
                 return None
 
-            self.code = paste_id
+            self.code = code
             print(f"[ngrok] Код подключения: {self.code}")
             return self.code
 
