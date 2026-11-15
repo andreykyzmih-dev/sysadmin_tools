@@ -56,10 +56,10 @@ def _start_ngrok(port: int) -> subprocess.Popen:
     )
 
 
-def _get_public_url(retries=15) -> str | None:
-    for _ in range(retries):
+def _get_public_url(retries=30) -> str | None:
+    for i in range(retries):
         try:
-            with urllib.request.urlopen(NGROK_API, timeout=3) as r:
+            with urllib.request.urlopen(NGROK_API, timeout=5) as r:
                 data = json.loads(r.read())
                 for t in data.get("tunnels", []):
                     url = t.get("public_url", "")
@@ -67,7 +67,8 @@ def _get_public_url(retries=15) -> str | None:
                         return url
         except Exception:
             pass
-        time.sleep(1)
+        print(f"[ngrok] Очікування туннелю... ({i+1}/{retries})")
+        time.sleep(2)
     return None
 
 
@@ -123,7 +124,8 @@ class NgrokSession:
         try:
             print("[ngrok] Запускаю туннель...")
             self.proc = _start_ngrok(shell_port)
-            time.sleep(3)
+            print("[ngrok] Очікую запуску ngrok (5 сек)...")
+            time.sleep(5)
 
             url = _get_public_url()
             if not url:
