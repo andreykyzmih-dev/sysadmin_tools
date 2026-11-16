@@ -1,99 +1,55 @@
 #!/usr/bin/env python3
 """
-ngrok_tunnel.py — Публичный туннель через ngrok + хранение кода на paste.rs.
+ngrok_tunnel.py — Публічний туннель через localhost.run (SSH, без реєстрації).
 
-Друг нажимает "Создать код" → ngrok создаёт туннель → 
-код сохраняется на paste.rs → ты вводишь код → подключаешься.
-
-paste.rs — бесплатный анонимный сервис, без регистрации.
+Схема:
+  ssh -R PORT:localhost:PORT nokey@localhost.run
+  → отримуємо публічний адрес → зберігаємо на relay → повертаємо код
 """
 
 import subprocess
+import threading
 import time
 import json
 import os
+import re
 import urllib.request
 import urllib.error
-import random
-import string
-import zipfile
 
-NGROK_TOKEN   = "3M1AGY5xoO5LvMdSQIzjMcjuVlj_85vSFUG61hNk8mF5fUD7i"
-NGROK_API     = "http://localhost:4040/api/tunnels"
-NGROK_ZIP_URL = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip"
-NGROK_EXE     = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ngrok.exe")
-RELAY_URL     = "https://sysadmin-tools.onrender.com"
+RELAY_URL   = "https://sysadmin-tools.onrender.com"
+SHELL_PORT  = 9999
+SCREEN_PORT = 9998
 
 
-# ── ngrok ─────────────────────────────────────────────────────────────────────
+# ── Relay сервер ──────────────────────────────────────────────────────────────
 
-def _get_ngrok_exe() -> str:
-    if os.path.exists(NGROK_EXE):
-        return NGROK_EXE
-    print("[ngrok] Скачиваю ngrok...")
-    zip_path = os.path.join(os.path.dirname(NGROK_EXE), "ngrok.zip")
-    urllib.request.urlretrieve(NGROK_ZIP_URL, zip_path)
-    with zipfile.ZipFile(zip_path, "r") as z:
-        z.extractall(os.path.dirname(NGROK_EXE))
-    os.remove(zip_path)
-    print("[ngrok] Готов.")
-    return NGROK_EXE
-
-
-def _configure_token():
-    exe = _get_ngrok_exe()
-    subprocess.run([exe, "config", "add-authtoken", NGROK_TOKEN],
-                   capture_output=True)
-
-
-def _start_ngrok(port: int) -> subprocess.Popen:
-    exe = _get_ngrok_exe()
-    _configure_token()
-    return subprocess.Popen(
-        [exe, "tcp", str(port)],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-
-
-def _get_public_url(retries=30) -> str | None:
-    for i in range(retries):
-        try:
-            with urllib.request.urlopen(NGROK_API, timeout=5) as r:
-                data = json.loads(r.read())
-                for t in data.get("tunnels", []):
-                    url = t.get("public_url", "")
-                    if url.startswith("tcp://"):
-                        return url
-        except Exception:
-            pass
-        print(f"[ngrok] Очікування туннелю... ({i+1}/{retries})")
-        time.sleep(2)
-    return None
-
-
-# ── Relay сервер ─────────────────────────────────────────────────────────────
-
-def _save_to_relay(host: str, port: int, screen_port: int) -> str | None:
-    """Зберігає дані на relay сервері і повертає код."""
-    data = json.dumps({
-        "host":        host,
-        "port":        port,
-        "screen_port": screen_port,
-    }).encode("utf-8")
+def _register(host: str, port: int, screen_port: int) -> str | None:
+    """Зберігає сесію на relay і повертає код."""
     try:
+        data = json.dumps({
+            "host": host, "port": port, "screen_port": screen_port
+        }).encode()
         req = urllib.request.Request(
-            f"{RELAY_URL}/register",
-            data=data,
-            headers={"Content-Type": "application/json"},
-            method="POST"
+            f"{RELAY_URL}/register", data=data,
+            headers={"Content-Type": "application/json"}, method="POST"
         )
         with urllib.request.urlopen(req, timeout=10) as r:
-            result = json.loads(r.read())
-            return result.get("code")
+            return json.loads(r.read()).get("code")
     except Exception as e:
-        print(f"[relay] Помилка збереження: {e}")
+        print(f"[relay] Помилка реєстрації: {e}")
         return None
+
+
+def _unregister(code: str):
+    try:
+        data = json.dumps({"code": code}).encode()
+        req = urllib.request.Request(
+            f"{RELAY_URL}/unregister", data=data,
+            headers={"Content-Type": "application/json"}, method="POST"
+        )
+        urllib.request.urlopen(req, timeout=5)
+    except Exception:
+        pass
 
 
 def resolve_code(code: str) -> dict | None:
@@ -102,62 +58,123 @@ def resolve_code(code: str) -> dict | None:
     if len(code) == 6 and "-" not in code:
         code = f"{code[:3]}-{code[3:]}"
     try:
-        url = f"{RELAY_URL}/get?code={code}"
-        with urllib.request.urlopen(url, timeout=10) as r:
+        with urllib.request.urlopen(f"{RELAY_URL}/get?code={code}", timeout=10) as r:
             return json.loads(r.read())
     except Exception as e:
-        print(f"[relay] Помилка отримання коду: {e}")
+        print(f"[relay] Помилка отримання: {e}")
         return None
 
 
-# ── Сессия ────────────────────────────────────────────────────────────────────
+# ── localhost.run туннель ─────────────────────────────────────────────────────
+
+def _start_tunnel(port: int) -> tuple[subprocess.Popen, str] | tuple[None, None]:
+    """
+    Запускає SSH туннель через localhost.run.
+    Повертає (процес, публічний_адрес) або (None, None).
+    """
+    try:
+        proc = subprocess.Popen(
+            ["ssh", "-o", "StrictHostKeyChecking=no",
+             "-o", "ServerAliveInterval=30",
+             "-R", f"0:localhost:{port}",
+             "nokey@localhost.run"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1
+        )
+
+        # Читаємо вивід поки не знайдемо адрес
+        public_addr = None
+        deadline = time.time() + 30  # 30 секунд на з'єднання
+
+        for line in proc.stdout:
+            line = line.strip()
+            print(f"[ssh] {line}")
+
+            # localhost.run показує: "tunneled with tls termination, https://xxx.lhr.life"
+            # або connection id рядок з портом
+            match = re.search(r'(\d+\.\d+\.\d+\.\d+:\d+)', line)
+            if match:
+                public_addr = match.group(1)
+                break
+
+            # Альтернативний формат
+            match2 = re.search(r'lhrtunnel\.link:(\d+)', line)
+            if match2:
+                public_addr = f"lhrtunnel.link:{match2.group(1)}"
+                break
+
+            match3 = re.search(r'your connection id is\s+([\d.]+:\d+)', line)
+            if match3:
+                public_addr = match3.group(1)
+                break
+
+            if time.time() > deadline:
+                break
+
+        return proc, public_addr
+
+    except FileNotFoundError:
+        print("[ssh] SSH не знайдено. Встановіть OpenSSH.")
+        return None, None
+    except Exception as e:
+        print(f"[tunnel] Помилка: {e}")
+        return None, None
+
+
+# ── Сесія ─────────────────────────────────────────────────────────────────────
 
 class NgrokSession:
+    """Управляє туннелем і кодом підключення."""
+
     def __init__(self):
-        self.proc       = None
-        self.code       = None
-        self.host       = None
-        self.port       = None
+        self.proc  = None
+        self.code  = None
+        self.host  = None
+        self.port  = None
 
-    def start(self, shell_port=9999, screen_port=9998) -> str | None:
-        """Запускает туннель и возвращает код подключения."""
-        try:
-            print("[ngrok] Запускаю туннель...")
-            self.proc = _start_ngrok(shell_port)
-            print("[ngrok] Очікую запуску ngrok (5 сек)...")
-            time.sleep(5)
+    def start(self, shell_port=SHELL_PORT, screen_port=SCREEN_PORT) -> str | None:
+        """Запускає туннель і повертає код підключення."""
+        print("[tunnel] Запуск туннелю через localhost.run...")
+        proc, addr = _start_tunnel(shell_port)
 
-            url = _get_public_url()
-            if not url:
-                print("[ngrok] Не удалось получить URL туннеля.")
-                self.stop()
-                return None
+        if not proc or not addr:
+            print("[tunnel] Не вдалось запустити туннель.")
+            return None
 
-            # Парсим tcp://X.tcp.ngrok.io:12345
-            addr = url.replace("tcp://", "")
-            self.host, port_str = addr.rsplit(":", 1)
-            self.port = int(port_str)
+        self.proc = proc
 
-            print(f"[ngrok] Туннель: {self.host}:{self.port}")
-
-            # Зберігаємо на relay сервері
-            print("[ngrok] Зберігаю код на relay сервері...")
-            code = _save_to_relay(self.host, self.port, screen_port)
-            if not code:
-                self.stop()
-                return None
-
-            self.code = code
-            print(f"[ngrok] Код подключения: {self.code}")
-            return self.code
-
-        except Exception as e:
-            print(f"[ngrok] Ошибка: {e}")
+        # Парсимо host:port
+        if ":" in addr:
+            parts = addr.rsplit(":", 1)
+            self.host = parts[0]
+            self.port = int(parts[1])
+        else:
+            print(f"[tunnel] Невірний формат адреси: {addr}")
             self.stop()
             return None
 
+        print(f"[tunnel] Публічний адрес: {self.host}:{self.port}")
+
+        # Реєструємо на relay
+        print("[relay] Зберігаю код...")
+        self.code = _register(self.host, self.port, screen_port)
+        if not self.code:
+            print("[relay] Не вдалось зареєструвати код.")
+            self.stop()
+            return None
+
+        print(f"[tunnel] ✅ Код підключення: {self.code}")
+        return self.code
+
     def stop(self):
+        if self.code:
+            _unregister(self.code)
         if self.proc:
-            self.proc.terminate()
+            try:
+                self.proc.terminate()
+            except Exception:
+                pass
         self.code = None
         self.proc = None
