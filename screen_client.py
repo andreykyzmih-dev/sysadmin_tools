@@ -161,6 +161,9 @@ class ScreenViewer:
                 self.sock.connect((self.host, self.port))
                 self.sock.settimeout(None)
 
+                # Надсилаємо тип з'єднання — 'V' для Video/Screen
+                self.sock.sendall(b'V')
+
                 # Аутентификация
                 msg = recv_msg(self.sock)
                 if not msg or msg != b"AUTH":
