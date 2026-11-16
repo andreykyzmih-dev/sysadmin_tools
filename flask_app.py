@@ -55,6 +55,7 @@ def register():
     host = data.get("host", "")
     port = int(data.get("port", 9999))
     screen_port = int(data.get("screen_port", 9998))
+    password = data.get("password", "")
 
     if not host:
         return jsonify({"error": "host обов'язковий"}), 400
@@ -65,6 +66,7 @@ def register():
             "host":        host,
             "port":        port,
             "screen_port": screen_port,
+            "password":    password,
             "ts":          time.time(),
         }
     print(f"[relay] Нова сесія: {code} → {host}:{port}")
