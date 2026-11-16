@@ -5,7 +5,7 @@ admin_gui.py — GUI панель адміністратора.
 """
 
 import tkinter as tk
-from tkinter import messagebox, scrolledtext, simpledialog
+from tkinter import messagebox, scrolledtext
 import threading
 import subprocess
 import datetime
@@ -246,14 +246,8 @@ class AdminGUI:
                     f"❌ Код {code} не знайдено або застарів.", "err"))
                 return
 
-            password = simpledialog.askstring(
-                "Пароль", "Введи пароль агента:", show="*", parent=self.root
-            )
-            if not password:
-                return
-
             self.session  = session
-            self.password = password
+            self.password = session.get("password", "")
             host = session["host"]
             port = session["port"]
 
