@@ -137,31 +137,40 @@ class NgrokSession:
         self.port  = None
 
     def start(self, shell_port=SHELL_PORT, screen_port=SCREEN_PORT, password="") -> str | None:
-        """Запускає туннель і повертає код підключення."""
-        print("[tunnel] Запуск туннелю через localhost.run...")
-        proc, addr = _start_tunnel(shell_port)
-
-        if not proc or not addr:
-            print("[tunnel] Не вдалось запустити туннель.")
+        """Запускає два туннелі і повертає код підключення."""
+        print("[tunnel] Запуск туннелю для терміналу...")
+        proc1, addr1 = _start_tunnel(shell_port)
+        if not proc1 or not addr1:
+            print("[tunnel] Не вдалось запустити туннель терміналу.")
             return None
+        self.proc = proc1
 
-        self.proc = proc
-
-        # Парсимо host:port
-        if ":" in addr:
-            parts = addr.rsplit(":", 1)
+        # Парсимо host:port для терміналу
+        if ":" in addr1:
+            parts = addr1.rsplit(":", 1)
             self.host = parts[0]
             self.port = int(parts[1])
         else:
-            print(f"[tunnel] Невірний формат адреси: {addr}")
             self.stop()
             return None
 
-        print(f"[tunnel] Публічний адрес: {self.host}:{self.port}")
+        print(f"[tunnel] Термінал: {self.host}:{self.port}")
+
+        # Запускаємо другий туннель для екрана
+        print("[tunnel] Запуск туннелю для екрана...")
+        proc2, addr2 = _start_tunnel(screen_port)
+        screen_public_port = screen_port  # fallback
+        if proc2 and addr2 and ":" in addr2:
+            screen_public_port = int(addr2.rsplit(":", 1)[1])
+            self.proc2 = proc2
+            print(f"[tunnel] Екран: {self.host}:{screen_public_port}")
+        else:
+            print("[tunnel] Туннель екрана не запустився — екран буде недоступний.")
+            self.proc2 = None
 
         # Реєструємо на relay
         print("[relay] Зберігаю код...")
-        self.code = _register(self.host, self.port, screen_port, password)
+        self.code = _register(self.host, self.port, screen_public_port, password)
         if not self.code:
             print("[relay] Не вдалось зареєструвати код.")
             self.stop()
@@ -174,9 +183,10 @@ class NgrokSession:
         if self.code:
             _unregister(self.code)
         if self.proc:
-            try:
-                self.proc.terminate()
-            except Exception:
-                pass
+            try: self.proc.terminate()
+            except Exception: pass
+        if hasattr(self, "proc2") and self.proc2:
+            try: self.proc2.terminate()
+            except Exception: pass
         self.code = None
         self.proc = None
