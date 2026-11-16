@@ -166,7 +166,7 @@ Write-OK "Зависимости установлены."
 
 # ── Скачиваем скрипты с GitHub ───────────────────────────────────────────────
 Write-Step "Скачивание файлов с GitHub..."
-$files = @("remote_shell.py", "agent_gui.py", "screen_server.py", "ngrok_tunnel.py")
+$files = @("remote_shell.py", "agent_gui.py", "screen_server.py", "ngrok_tunnel.py", "proxy_server.py")
 
 foreach ($f in $files) {
     $url = "$BASE_URL/$f"
