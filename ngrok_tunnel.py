@@ -23,11 +23,13 @@ SCREEN_PORT = 9998
 
 # ── Relay сервер ──────────────────────────────────────────────────────────────
 
-def _register(host: str, port: int, screen_port: int) -> str | None:
+def _register(host: str, port: int, screen_port: int, password: str = "") -> str | None:
     """Зберігає сесію на relay і повертає код."""
     try:
         data = json.dumps({
-            "host": host, "port": port, "screen_port": screen_port
+            "host": host, "port": port,
+            "screen_port": screen_port,
+            "password": password
         }).encode()
         req = urllib.request.Request(
             f"{RELAY_URL}/register", data=data,
@@ -134,7 +136,7 @@ class NgrokSession:
         self.host  = None
         self.port  = None
 
-    def start(self, shell_port=SHELL_PORT, screen_port=SCREEN_PORT) -> str | None:
+    def start(self, shell_port=SHELL_PORT, screen_port=SCREEN_PORT, password="") -> str | None:
         """Запускає туннель і повертає код підключення."""
         print("[tunnel] Запуск туннелю через localhost.run...")
         proc, addr = _start_tunnel(shell_port)
@@ -159,7 +161,7 @@ class NgrokSession:
 
         # Реєструємо на relay
         print("[relay] Зберігаю код...")
-        self.code = _register(self.host, self.port, screen_port)
+        self.code = _register(self.host, self.port, screen_port, password)
         if not self.code:
             print("[relay] Не вдалось зареєструвати код.")
             self.stop()
