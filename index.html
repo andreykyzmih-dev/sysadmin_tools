@@ -5,174 +5,101 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SysAdmin Tools</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#1e1e2e;--bg2:#181825;--bg3:#313244;--bg4:#45475a;
+      --text:#cdd6f4;--subtle:#6c7086;
+      --blue:#89b4fa;--green:#a6e3a1;--yellow:#f9e2af;
+      --red:#f38ba8;--purple:#cba6f7;--teal:#94e2d5;
+    }
+    body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
 
-    :root {
-      --bg:      #1e1e2e;
-      --bg2:     #181825;
-      --bg3:     #313244;
-      --text:    #cdd6f4;
-      --subtle:  #6c7086;
-      --blue:    #89b4fa;
-      --green:   #a6e3a1;
-      --yellow:  #f9e2af;
-      --red:     #f38ba8;
-      --purple:  #cba6f7;
-    }
+    /* NAV */
+    nav{position:fixed;top:0;width:100%;z-index:100;background:rgba(24,24,37,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--bg3);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:64px}
+    .logo{font-size:1.3rem;font-weight:800;color:var(--blue);letter-spacing:-.5px}.logo span{color:var(--green)}
+    .nav-links{display:flex;gap:1.5rem;list-style:none}
+    .nav-links a{color:var(--subtle);text-decoration:none;font-size:.95rem;transition:color .2s}.nav-links a:hover{color:var(--text)}
+    .nav-btn{background:var(--blue);color:#1e1e2e;padding:.4rem 1rem;border-radius:6px;font-weight:700;text-decoration:none;font-size:.9rem;transition:opacity .2s}.nav-btn:hover{opacity:.85}
 
-    body {
-      font-family: "Segoe UI", system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-    }
+    /* HERO */
+    .hero{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:80px 2rem 4rem;background:radial-gradient(ellipse at 50% 0%,rgba(137,180,250,.1) 0%,transparent 65%)}
+    .hero-content{max-width:750px}
+    .badge{display:inline-flex;align-items:center;gap:.4rem;background:var(--bg3);color:var(--blue);padding:.3rem 1rem;border-radius:999px;font-size:.85rem;margin-bottom:1.5rem}
+    h1{font-size:clamp(2.2rem,5vw,3.8rem);font-weight:800;margin-bottom:1rem;line-height:1.1}
+    h1 span{color:var(--blue)}
+    .hero p{font-size:1.1rem;color:var(--subtle);margin-bottom:2.5rem;max-width:520px;margin-left:auto;margin-right:auto}
+    .btn-group{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+    .btn{padding:.8rem 1.75rem;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;text-decoration:none;border:none;transition:transform .15s,opacity .15s;display:inline-flex;align-items:center;gap:.4rem}
+    .btn:hover{transform:translateY(-2px);opacity:.9}
+    .btn-primary{background:var(--blue);color:#1e1e2e}
+    .btn-secondary{background:var(--bg3);color:var(--text)}
+    .btn-green{background:var(--green);color:#1e1e2e}
+    .btn-purple{background:var(--purple);color:#1e1e2e}
 
-    /* ── NAV ── */
-    nav {
-      position: fixed; top: 0; width: 100%; z-index: 100;
-      background: rgba(24,24,37,0.95);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid var(--bg3);
-      padding: 0 2rem;
-      display: flex; align-items: center; justify-content: space-between;
-      height: 60px;
-    }
-    .logo { font-size: 1.2rem; font-weight: 700; color: var(--blue); }
-    .logo span { color: var(--green); }
-    .nav-links { display: flex; gap: 2rem; list-style: none; }
-    .nav-links a { color: var(--subtle); text-decoration: none; font-size: 0.95rem; transition: color .2s; }
-    .nav-links a:hover { color: var(--text); }
+    /* DOWNLOAD SECTION */
+    .download-section{padding:5rem 2rem;background:var(--bg2);border-top:1px solid var(--bg3);border-bottom:1px solid var(--bg3)}
+    .download-inner{max-width:900px;margin:0 auto}
+    .download-inner h2{text-align:center;font-size:2rem;margin-bottom:.5rem}
+    .download-inner>p{text-align:center;color:var(--subtle);margin-bottom:3rem}
+    .download-cards{display:grid;grid-template-columns:1fr 1fr;gap:2rem}
+    @media(max-width:640px){.download-cards{grid-template-columns:1fr}}
+    .dl-card{background:var(--bg);border:2px solid var(--bg3);border-radius:16px;padding:2rem;transition:border-color .2s,transform .2s}
+    .dl-card:hover{transform:translateY(-4px)}
+    .dl-card.agent{border-color:rgba(166,227,161,.3)}.dl-card.agent:hover{border-color:var(--green)}
+    .dl-card.admin{border-color:rgba(137,180,250,.3)}.dl-card.admin:hover{border-color:var(--blue)}
+    .dl-card-icon{font-size:2.5rem;margin-bottom:1rem}
+    .dl-card h3{font-size:1.3rem;margin-bottom:.5rem}
+    .dl-card p{color:var(--subtle);font-size:.95rem;margin-bottom:1.5rem}
+    .dl-card ul{list-style:none;margin-bottom:1.5rem}
+    .dl-card ul li{color:var(--subtle);font-size:.9rem;padding:.2rem 0}
+    .dl-card ul li::before{content:"✓ ";color:var(--green)}
+    .code-block{background:#11111b;border:1px solid var(--bg3);border-radius:8px;padding:.85rem 1rem;position:relative;margin-bottom:1rem}
+    .code-block code{font-family:"Consolas",monospace;font-size:.82rem;color:var(--green);word-break:break-all;display:block}
+    .copy-btn{position:absolute;top:.5rem;right:.5rem;background:var(--bg3);border:none;color:var(--subtle);padding:.2rem .6rem;border-radius:4px;cursor:pointer;font-size:.75rem;transition:color .2s}.copy-btn:hover{color:var(--text)}
 
-    /* ── HERO ── */
-    .hero {
-      min-height: 100vh;
-      display: flex; align-items: center; justify-content: center;
-      text-align: center;
-      padding: 80px 2rem 4rem;
-      background: radial-gradient(ellipse at 50% 0%, rgba(137,180,250,0.08) 0%, transparent 60%);
-    }
-    .hero-content { max-width: 700px; }
-    .badge {
-      display: inline-block;
-      background: var(--bg3); color: var(--blue);
-      padding: .3rem 1rem; border-radius: 999px;
-      font-size: .85rem; margin-bottom: 1.5rem;
-    }
-    h1 { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 800; margin-bottom: 1rem; }
-    h1 span { color: var(--blue); }
-    .hero p { font-size: 1.15rem; color: var(--subtle); margin-bottom: 2.5rem; max-width: 500px; margin-left: auto; margin-right: auto; }
-    .btn-group { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
-    .btn {
-      padding: .75rem 1.75rem; border-radius: 8px;
-      font-size: 1rem; font-weight: 600; cursor: pointer;
-      text-decoration: none; border: none; transition: transform .15s, opacity .15s;
-    }
-    .btn:hover { transform: translateY(-2px); opacity: .9; }
-    .btn-primary { background: var(--blue); color: #1e1e2e; }
-    .btn-secondary { background: var(--bg3); color: var(--text); }
+    /* CONNECT */
+    .connect-section{padding:5rem 2rem;text-align:center}
+    .connect-box{max-width:580px;margin:0 auto}
+    .connect-box h2{font-size:2rem;margin-bottom:.5rem}
+    .connect-box>p{color:var(--subtle);margin-bottom:2rem}
+    .code-input-wrap{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;margin-bottom:1.5rem}
+    .code-input{background:var(--bg3);border:2px solid var(--bg3);color:var(--text);padding:.75rem 1.25rem;border-radius:8px;font-size:1.8rem;font-family:"Consolas",monospace;width:220px;text-align:center;letter-spacing:.2em;outline:none;transition:border-color .2s}.code-input:focus{border-color:var(--blue)}
+    .btn-connect{background:var(--green);color:#1e1e2e;padding:.75rem 2rem;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;border:none;transition:transform .15s}.btn-connect:hover{transform:translateY(-2px)}
+    #connect-result{margin-top:1.5rem;padding:1.25rem 1.5rem;border-radius:10px;display:none;font-family:"Consolas",monospace;font-size:.88rem;text-align:left;white-space:pre-wrap;word-break:break-all;line-height:1.7}
+    #connect-result.success{background:rgba(166,227,161,.08);border:1px solid var(--green);color:var(--green)}
+    #connect-result.error{background:rgba(243,139,168,.08);border:1px solid var(--red);color:var(--red)}
+    #connect-result.loading{background:rgba(137,180,250,.08);border:1px solid var(--blue);color:var(--blue)}
 
-    /* ── CONNECT BOX ── */
-    .connect-section {
-      padding: 4rem 2rem;
-      background: var(--bg2);
-      border-top: 1px solid var(--bg3);
-      border-bottom: 1px solid var(--bg3);
-    }
-    .connect-box {
-      max-width: 600px; margin: 0 auto; text-align: center;
-    }
-    .connect-box h2 { font-size: 1.8rem; margin-bottom: .5rem; }
-    .connect-box p { color: var(--subtle); margin-bottom: 2rem; }
-    .code-input-wrap {
-      display: flex; gap: .75rem; justify-content: center; flex-wrap: wrap;
-    }
-    .code-input {
-      background: var(--bg3); border: 2px solid var(--bg3);
-      color: var(--text); padding: .75rem 1.25rem;
-      border-radius: 8px; font-size: 1.5rem; font-family: "Consolas", monospace;
-      width: 200px; text-align: center; letter-spacing: .15em;
-      outline: none; transition: border-color .2s;
-    }
-    .code-input:focus { border-color: var(--blue); }
-    .btn-connect {
-      background: var(--green); color: #1e1e2e;
-      padding: .75rem 1.75rem; border-radius: 8px;
-      font-size: 1rem; font-weight: 700; cursor: pointer; border: none;
-      transition: transform .15s;
-    }
-    .btn-connect:hover { transform: translateY(-2px); }
-    #connect-result {
-      margin-top: 1.5rem; padding: 1rem 1.5rem;
-      border-radius: 8px; display: none;
-      font-family: "Consolas", monospace; font-size: .9rem;
-      text-align: left; white-space: pre-wrap; word-break: break-all;
-    }
-    #connect-result.success { background: rgba(166,227,161,.1); border: 1px solid var(--green); color: var(--green); }
-    #connect-result.error   { background: rgba(243,139,168,.1); border: 1px solid var(--red);   color: var(--red); }
+    /* FEATURES */
+    .features{padding:5rem 2rem;max-width:1100px;margin:0 auto}
+    .features h2{text-align:center;font-size:2rem;margin-bottom:3rem}
+    .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.25rem}
+    .card{background:var(--bg2);border:1px solid var(--bg3);border-radius:12px;padding:1.5rem;transition:border-color .2s,transform .2s}
+    .card:hover{border-color:var(--blue);transform:translateY(-4px)}
+    .card-icon{font-size:1.8rem;margin-bottom:.75rem}
+    .card h3{font-size:1rem;margin-bottom:.4rem}
+    .card p{color:var(--subtle);font-size:.88rem}
 
-    /* ── FEATURES ── */
-    .features { padding: 5rem 2rem; max-width: 1100px; margin: 0 auto; }
-    .features h2 { text-align: center; font-size: 2rem; margin-bottom: 3rem; }
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
-    .card {
-      background: var(--bg2); border: 1px solid var(--bg3);
-      border-radius: 12px; padding: 1.5rem;
-      transition: border-color .2s, transform .2s;
-    }
-    .card:hover { border-color: var(--blue); transform: translateY(-4px); }
-    .card-icon { font-size: 2rem; margin-bottom: .75rem; }
-    .card h3 { font-size: 1.1rem; margin-bottom: .5rem; }
-    .card p { color: var(--subtle); font-size: .9rem; }
+    /* STEPS */
+    .steps{padding:5rem 2rem;background:var(--bg2);border-top:1px solid var(--bg3)}
+    .steps-inner{max-width:750px;margin:0 auto}
+    .steps-inner h2{text-align:center;font-size:2rem;margin-bottom:3rem}
+    .step{display:flex;gap:1.5rem;margin-bottom:2rem}
+    .step-num{width:42px;height:42px;border-radius:50%;background:var(--blue);color:#1e1e2e;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.1rem;flex-shrink:0}
+    .step-content h3{margin-bottom:.25rem}
+    .step-content p{color:var(--subtle);font-size:.95rem}
 
-    /* ── INSTALL ── */
-    .install { padding: 5rem 2rem; background: var(--bg2); border-top: 1px solid var(--bg3); }
-    .install-inner { max-width: 700px; margin: 0 auto; text-align: center; }
-    .install h2 { font-size: 2rem; margin-bottom: .5rem; }
-    .install p { color: var(--subtle); margin-bottom: 2rem; }
-    .code-block {
-      background: #11111b; border: 1px solid var(--bg3);
-      border-radius: 8px; padding: 1rem 1.5rem;
-      text-align: left; position: relative; margin-bottom: 1rem;
-    }
-    .code-block code { font-family: "Consolas", monospace; font-size: .9rem; color: var(--green); word-break: break-all; }
-    .copy-btn {
-      position: absolute; top: .5rem; right: .75rem;
-      background: var(--bg3); border: none; color: var(--subtle);
-      padding: .25rem .75rem; border-radius: 4px;
-      cursor: pointer; font-size: .8rem; transition: color .2s;
-    }
-    .copy-btn:hover { color: var(--text); }
+    /* FOOTER */
+    footer{text-align:center;padding:2rem;border-top:1px solid var(--bg3);color:var(--subtle);font-size:.85rem}
+    footer a{color:var(--blue);text-decoration:none}
+    .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:.4rem;animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
-    /* ── STEPS ── */
-    .steps { padding: 5rem 2rem; max-width: 800px; margin: 0 auto; }
-    .steps h2 { text-align: center; font-size: 2rem; margin-bottom: 3rem; }
-    .step { display: flex; gap: 1.5rem; margin-bottom: 2rem; }
-    .step-num {
-      width: 40px; height: 40px; border-radius: 50%;
-      background: var(--blue); color: #1e1e2e;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 800; font-size: 1.1rem; flex-shrink: 0;
-    }
-    .step-content h3 { margin-bottom: .25rem; }
-    .step-content p { color: var(--subtle); font-size: .95rem; }
-
-    /* ── FOOTER ── */
-    footer {
-      text-align: center; padding: 2rem;
-      border-top: 1px solid var(--bg3);
-      color: var(--subtle); font-size: .85rem;
-    }
-    footer a { color: var(--blue); text-decoration: none; }
-
-    /* ── STATUS dot ── */
-    .status-dot {
-      display: inline-block; width: 8px; height: 8px;
-      border-radius: 50%; background: var(--green);
-      margin-right: .4rem; animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0%,100% { opacity: 1; } 50% { opacity: .4; }
-    }
+    /* TABS */
+    .tabs{display:flex;gap:.5rem;margin-bottom:1.5rem}
+    .tab{padding:.5rem 1rem;border-radius:6px;cursor:pointer;font-size:.9rem;border:1px solid var(--bg3);background:transparent;color:var(--subtle);transition:all .2s}
+    .tab.active{background:var(--blue);color:#1e1e2e;border-color:var(--blue);font-weight:600}
+    .tab-content{display:none}.tab-content.active{display:block}
   </style>
 </head>
 <body>
@@ -181,9 +108,9 @@
 <nav>
   <div class="logo">SysAdmin<span>Tools</span></div>
   <ul class="nav-links">
+    <li><a href="#download">Завантажити</a></li>
     <li><a href="#connect">Підключитись</a></li>
     <li><a href="#features">Можливості</a></li>
-    <li><a href="#install">Встановлення</a></li>
     <li><a href="https://github.com/andreykyzmih-dev/sysadmin_tools" target="_blank">GitHub</a></li>
   </ul>
 </nav>
@@ -195,20 +122,67 @@
     <h1>Керуй комп'ютером<br><span>віддалено</span></h1>
     <p>Термінал, трансляція екрана і моніторинг системи — все в одному інструменті для системного адміністратора.</p>
     <div class="btn-group">
-      <a href="#connect" class="btn btn-primary">🔌 Підключитись за кодом</a>
-      <a href="#install" class="btn btn-secondary">⬇️ Встановити агент</a>
+      <a href="#download" class="btn btn-green">⬇️ Завантажити</a>
+      <a href="#connect" class="btn btn-secondary">🔌 Підключитись за кодом</a>
     </div>
   </div>
 </section>
 
-<!-- CONNECT BY CODE -->
+<!-- DOWNLOAD -->
+<section class="download-section" id="download">
+  <div class="download-inner">
+    <h2>⬇️ Завантаження</h2>
+    <p>Вибери що тобі потрібно встановити</p>
+    <div class="download-cards">
+
+      <!-- АГЕНТ (для друга) -->
+      <div class="dl-card agent">
+        <div class="dl-card-icon">🖥️</div>
+        <h3>Агент <span style="color:var(--subtle);font-size:.85rem">(для того ким керують)</span></h3>
+        <p>Встанови на комп'ютер яким хочеш дозволити керувати. Ти побачиш всі дії адміністратора і зможеш заблокувати доступ.</p>
+        <ul>
+          <li>Автоматична установка Python</li>
+          <li>GUI панель з контролем доступу</li>
+          <li>Генерація коду підключення</li>
+          <li>Блокування небезпечних команд</li>
+        </ul>
+        <div class="code-block">
+          <code id="agent-cmd">irm https://raw.githubusercontent.com/andreykyzmih-dev/sysadmin_tools/main/install_agent.ps1 | iex</code>
+          <button class="copy-btn" onclick="copyEl('agent-cmd',this)">Копіювати</button>
+        </div>
+        <small style="color:var(--subtle);font-size:.8rem">Вставити в PowerShell від імені адміністратора</small>
+      </div>
+
+      <!-- КЛІЄНТ (для тебе) -->
+      <div class="dl-card admin">
+        <div class="dl-card-icon">👨‍💻</div>
+        <h3>Клієнт <span style="color:var(--subtle);font-size:.85rem">(для адміністратора)</span></h3>
+        <p>Встанови на свій комп'ютер. Дозволяє підключатись до агента, переглядати екран та керувати мишею і клавіатурою.</p>
+        <ul>
+          <li>Підключення до терміналу</li>
+          <li>Перегляд екрана в реальному часі</li>
+          <li>Керування мишею і клавіатурою</li>
+          <li>Підключення за 6-значним кодом</li>
+        </ul>
+        <div class="code-block">
+          <code id="client-cmd">irm https://raw.githubusercontent.com/andreykyzmih-dev/sysadmin_tools/main/install_client.ps1 | iex</code>
+          <button class="copy-btn" onclick="copyEl('client-cmd',this)">Копіювати</button>
+        </div>
+        <small style="color:var(--subtle);font-size:.8rem">Вставити в PowerShell від імені адміністратора</small>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- CONNECT -->
 <section class="connect-section" id="connect">
   <div class="connect-box">
     <h2>🔌 Підключитись за кодом</h2>
     <p>Введи код який показує агент на комп'ютері друга</p>
     <div class="code-input-wrap">
-      <input class="code-input" id="codeInput" placeholder="482-156" maxlength="7">
-      <button class="btn-connect" onclick="resolveCode()">Підключитись →</button>
+      <input class="code-input" id="codeInput" placeholder="000-000" maxlength="7" autocomplete="off">
+      <button class="btn-connect" onclick="resolveCode()">Знайти →</button>
     </div>
     <div id="connect-result"></div>
   </div>
@@ -218,81 +192,34 @@
 <section class="features" id="features">
   <h2>Можливості</h2>
   <div class="cards">
-    <div class="card">
-      <div class="card-icon">💻</div>
-      <h3>Віддалений термінал</h3>
-      <p>Виконуй PowerShell команди на комп'ютері друга в реальному часі.</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">🖥️</div>
-      <h3>Трансляція екрана</h3>
-      <p>Переглядай екран та керуй мишею і клавіатурою як в AnyDesk.</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">🛡️</div>
-      <h3>Контроль доступу</h3>
-      <p>Власник бачить всі команди і може заблокувати або відключити адміністратора.</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">📊</div>
-      <h3>Моніторинг системи</h3>
-      <p>Диски, мережа, процеси, служби, логи — все в одному місці.</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">🔑</div>
-      <h3>Підключення за кодом</h3>
-      <p>Просто введи 6-значний код — працює з будь-якої мережі через ngrok.</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">⚡</div>
-      <h3>Легке встановлення</h3>
-      <p>Одна команда в PowerShell — все встановлюється автоматично.</p>
-    </div>
-  </div>
-</section>
-
-<!-- INSTALL -->
-<section class="install" id="install">
-  <div class="install-inner">
-    <h2>Встановлення агента</h2>
-    <p>Вставте цю команду в PowerShell на комп'ютері яким хочете керувати</p>
-    <div class="code-block">
-      <code>irm https://raw.githubusercontent.com/andreykyzmih-dev/sysadmin_tools/main/install_agent.ps1 | iex</code>
-      <button class="copy-btn" onclick="copyCode(this)">Копіювати</button>
-    </div>
-    <p style="color:var(--subtle); font-size:.9rem;">Скрипт автоматично встановить Python, залежності та запустить панель керування.</p>
+    <div class="card"><div class="card-icon">💻</div><h3>Віддалений термінал</h3><p>Виконуй PowerShell команди на комп'ютері друга в реальному часі.</p></div>
+    <div class="card"><div class="card-icon">🖥️</div><h3>Трансляція екрана</h3><p>Переглядай екран та керуй мишею і клавіатурою як в AnyDesk.</p></div>
+    <div class="card"><div class="card-icon">🛡️</div><h3>Контроль доступу</h3><p>Власник бачить всі команди і може заблокувати адміністратора.</p></div>
+    <div class="card"><div class="card-icon">📊</div><h3>Моніторинг системи</h3><p>Диски, мережа, процеси, служби, логи — все в одному місці.</p></div>
+    <div class="card"><div class="card-icon">🔑</div><h3>Код підключення</h3><p>6-значний код — підключення з будь-якої мережі без IP.</p></div>
+    <div class="card"><div class="card-icon">⚡</div><h3>Легке встановлення</h3><p>Одна команда в PowerShell — все встановлюється автоматично.</p></div>
   </div>
 </section>
 
 <!-- STEPS -->
 <section class="steps">
-  <h2>Як це працює</h2>
-  <div class="step">
-    <div class="step-num">1</div>
-    <div class="step-content">
-      <h3>Друг встановлює агент</h3>
-      <p>Одна команда в PowerShell — Python, залежності та GUI встановлюються автоматично.</p>
+  <div class="steps-inner">
+    <h2>Як це працює</h2>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content"><h3>Друг встановлює агент</h3><p>Одна команда в PowerShell — Python і GUI встановлюються автоматично.</p></div>
     </div>
-  </div>
-  <div class="step">
-    <div class="step-num">2</div>
-    <div class="step-content">
-      <h3>Друг натискає "Створити код"</h3>
-      <p>Агент запускає ngrok туннель і генерує 6-значний код підключення.</p>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content"><h3>Агент генерує код</h3><p>Натискає "Створити код" → отримує 6-значний код → скидає тобі.</p></div>
     </div>
-  </div>
-  <div class="step">
-    <div class="step-num">3</div>
-    <div class="step-content">
-      <h3>Ти вводиш код на цьому сайті</h3>
-      <p>Отримуєш готову команду для підключення до терміналу або екрана.</p>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content"><h3>Ти вводиш код на цьому сайті</h3><p>Отримуєш готову команду для підключення до терміналу або екрана.</p></div>
     </div>
-  </div>
-  <div class="step">
-    <div class="step-num">4</div>
-    <div class="step-content">
-      <h3>Підключення встановлено</h3>
-      <p>Друг бачить всі твої дії в GUI і може заблокувати доступ в будь-який момент.</p>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content"><h3>Підключення встановлено</h3><p>Друг бачить всі твої дії і може заблокувати доступ в будь-який момент.</p></div>
     </div>
   </div>
 </section>
@@ -302,82 +229,53 @@
   <p>
     <span class="status-dot"></span> Relay сервер працює ·
     <a href="https://github.com/andreykyzmih-dev/sysadmin_tools" target="_blank">GitHub</a> ·
+    <a href="https://andreykyzmih-dev.github.io/sysadmin_tools" target="_blank">Сайт</a> ·
     IT колледж iStep · 2026
   </p>
 </footer>
 
 <script>
-  // ── Підключення за кодом ─────────────────────────────────────────────────
   const RELAY = "https://sysadmin-tools.onrender.com";
 
   async function resolveCode() {
     const input = document.getElementById("codeInput");
-    const result = document.getElementById("connect-result");
     let code = input.value.trim().replace(/\s/g, "");
-    if (code.length === 6 && !code.includes("-")) {
-      code = code.slice(0,3) + "-" + code.slice(3);
-    }
-    if (code.length < 6) {
-      showResult("❌ Введи код підключення (6 цифр)", "error");
-      return;
-    }
+    if (code.length === 6 && !code.includes("-")) code = code.slice(0,3)+"-"+code.slice(3);
+    if (code.replace("-","").length < 6) { showResult("❌ Введи код підключення (6 цифр)", "error"); return; }
 
-    showResult("⏳ Пошук сесії...", "success");
-
+    showResult("⏳ Пошук сесії...", "loading");
     try {
       const resp = await fetch(`${RELAY}/get?code=${code}`);
-      if (!resp.ok) {
-        showResult("❌ Код не знайдено або застарів.\nПопроси друга створити новий код.", "error");
-        return;
-      }
-      const data = await resp.json();
-      const host = data.host;
-      const port = data.port;
-      const screenPort = data.screen_port || 9998;
+      if (!resp.ok) { showResult("❌ Код не знайдено або застарів.\nПопроси друга створити новий код.", "error"); return; }
+      const d = await resp.json();
       const py = `"$env:LOCALAPPDATA\\Programs\\Python\\Python312\\python.exe"`;
-
-      const termCmd = `& ${py} remote_shell.py --client --host ${host} --port ${port} --password ПАРОЛЬ`;
-      const scrCmd  = `& ${py} screen_client.py --host ${host} --port ${screenPort} --password ПАРОЛЬ`;
-
+      const base = `"$env:LOCALAPPDATA\\RemoteShellClient"`;
       showResult(
-        `✅ Знайдено! Вставте в PowerShell:\n\n` +
-        `[Термінал]\n${termCmd}\n\n` +
-        `[Екран]\n${scrCmd}`,
+        `✅ Знайдено! Вставте в PowerShell:\n\n`+
+        `[Термінал]\n& ${py} ${base}\\remote_shell.py --client --host ${d.host} --port ${d.port} --password ПАРОЛЬ\n\n`+
+        `[Екран]\n& ${py} ${base}\\screen_client.py --host ${d.host} --port ${d.screen_port||9998} --password ПАРОЛЬ`,
         "success"
       );
-    } catch(e) {
-      showResult("❌ Помилка з'єднання з relay сервером.", "error");
-    }
+    } catch(e) { showResult("❌ Помилка з'єднання з relay сервером.", "error"); }
   }
 
   function showResult(text, type) {
     const el = document.getElementById("connect-result");
-    el.textContent = text;
-    el.className = type;
-    el.style.display = "block";
+    el.textContent = text; el.className = type; el.style.display = "block";
   }
 
-  // ── Копіювання коду ──────────────────────────────────────────────────────
-  function copyCode(btn) {
-    const code = btn.previousElementSibling.textContent;
-    navigator.clipboard.writeText(code).then(() => {
-      btn.textContent = "Скопійовано!";
-      setTimeout(() => btn.textContent = "Копіювати", 2000);
+  function copyEl(id, btn) {
+    navigator.clipboard.writeText(document.getElementById(id).textContent).then(() => {
+      btn.textContent = "✓ Скопійовано"; setTimeout(() => btn.textContent = "Копіювати", 2000);
     });
   }
 
-  // Enter в полі коду
-  document.getElementById("codeInput").addEventListener("keydown", e => {
-    if (e.key === "Enter") resolveCode();
-  });
-
-  // Автоформатування коду XXX-XXX
+  document.getElementById("codeInput").addEventListener("keydown", e => { if(e.key==="Enter") resolveCode(); });
   document.getElementById("codeInput").addEventListener("input", e => {
-    let v = e.target.value.replace(/\D/g, "");
-    if (v.length > 3) v = v.slice(0,3) + "-" + v.slice(3,6);
+    let v = e.target.value.replace(/\D/g,"");
+    if(v.length>3) v = v.slice(0,3)+"-"+v.slice(3,6);
     e.target.value = v;
   });
 </script>
-
 </body>
 </html>
