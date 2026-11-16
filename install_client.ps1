@@ -83,7 +83,7 @@ Write-OK "Залежності встановлено."
 
 # Завантаження файлів
 Write-Step "Завантаження файлів з GitHub..."
-$files = @("remote_shell.py", "screen_client.py", "connect.py", "ngrok_tunnel.py")
+$files = @("remote_shell.py", "screen_client.py", "connect.py", "ngrok_tunnel.py", "admin_gui.py")
 foreach ($f in $files) {
     Write-Host "  Завантаження $f..." -ForegroundColor Gray
     try {
@@ -100,7 +100,7 @@ try {
     $wsh = New-Object -ComObject WScript.Shell
     $sc = $wsh.CreateShortcut("$env:USERPROFILE\Desktop\SysAdmin Client.lnk")
     $sc.TargetPath = $PY_EXE
-    $sc.Arguments = "`"$INSTALL_DIR\connect.py`""
+    $sc.Arguments = "`"$INSTALL_DIR\admin_gui.py`""
     $sc.WorkingDirectory = [string]$INSTALL_DIR
     $sc.Description = "SysAdmin Tools Client"
     $sc.Save()
@@ -120,5 +120,5 @@ Write-Host "  1. Отримай код від друга (наприклад 482
 Write-Host "  2. Запусти:" -ForegroundColor Gray
 Write-Host "     & `"$PY_EXE`" `"$INSTALL_DIR\connect.py`"" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "  Або використай ярлик 'SysAdmin Client' на робочому столі." -ForegroundColor Gray
-Write-Host ""
+Write-Host "  Запуск панелі адміністратора..." -ForegroundColor Green
+Start-Process -FilePath $PY_EXE -ArgumentList "`"$INSTALL_DIR\admin_gui.py`"" -WorkingDirectory $INSTALL_DIR
