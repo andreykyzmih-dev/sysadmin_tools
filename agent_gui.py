@@ -356,7 +356,7 @@ class AgentGUI:
         self._ngrok = ng.NgrokSession()
 
         def do_ngrok():
-            code = self._ngrok.start()
+            code = self._ngrok.start(password=pw)
             if code:
                 self.root.after(0, lambda c=code: self._on_code_ready(c))
             else:
