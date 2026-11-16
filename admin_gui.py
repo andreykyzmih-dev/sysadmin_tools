@@ -270,10 +270,11 @@ class AdminGUI:
         py   = find_python()
         host = self.session["host"]
         port = self.session["port"]
+        pwd  = self.password or "nopass"
         script = os.path.join(SCRIPT_DIR, "remote_shell.py")
         subprocess.Popen([
             "powershell", "-NoExit", "-Command",
-            f'& "{py}" "{script}" --client --host {host} --port {port} --password {self.password}'
+            f'& "{py}" "{script}" --client --host {host} --port {port} --password "{pwd}"'
         ])
         self._log(f"💻 Термінал запущено → {host}:{port}", "ok")
 
@@ -284,12 +285,13 @@ class AdminGUI:
         py          = find_python()
         host        = self.session["host"]
         screen_port = self.session.get("screen_port", 9998)
+        pwd         = self.password or "nopass"
         script      = os.path.join(SCRIPT_DIR, "screen_client.py")
         subprocess.Popen([
             py, script,
             "--host", host,
             "--port", str(screen_port),
-            "--password", self.password
+            "--password", pwd
         ])
         self._log(f"🖥️ Перегляд екрана запущено → {host}:{screen_port}", "ok")
 
