@@ -68,30 +68,30 @@ class AgentGUI:
         hdr = tk.Frame(self.root, bg="#181825", pady=10)
         hdr.pack(fill=tk.X)
         tk.Label(hdr, text="🖥️  Remote Shell — Панель агента",
-                 font=("Segoe UI", 14, "bold"), bg="#181825", fg=ACCENT).pack()
+                font=("Segoe UI", 14, "bold"), bg="#181825", fg=ACCENT).pack()
         tk.Label(hdr, text="Вы видите все действия администратора и можете контролировать доступ",
-                 font=("Segoe UI", 9), bg="#181825", fg="#6c7086").pack()
+                font=("Segoe UI", 9), bg="#181825", fg="#6c7086").pack()
 
         # ── Статус-панель ──
         status_frame = tk.Frame(self.root, bg=BG2, pady=8, padx=15)
         status_frame.pack(fill=tk.X, padx=10, pady=(8, 0))
 
         tk.Label(status_frame, text="Статус:", font=("Segoe UI", 10),
-                 bg=BG2, fg=FG).grid(row=0, column=0, sticky="w")
+                bg=BG2, fg=FG).grid(row=0, column=0, sticky="w")
         self.lbl_status = tk.Label(status_frame, text="⏸ Остановлен",
-                                   font=("Segoe UI", 10, "bold"), bg=BG2, fg=YELLOW)
+                                font=("Segoe UI", 10, "bold"), bg=BG2, fg=YELLOW)
         self.lbl_status.grid(row=0, column=1, sticky="w", padx=8)
 
         tk.Label(status_frame, text="Подключён:", font=("Segoe UI", 10),
-                 bg=BG2, fg=FG).grid(row=0, column=2, sticky="w", padx=(20, 0))
+                bg=BG2, fg=FG).grid(row=0, column=2, sticky="w", padx=(20, 0))
         self.lbl_client = tk.Label(status_frame, text="никто",
-                                   font=("Segoe UI", 10, "bold"), bg=BG2, fg="#6c7086")
+                                font=("Segoe UI", 10, "bold"), bg=BG2, fg="#6c7086")
         self.lbl_client.grid(row=0, column=3, sticky="w", padx=8)
 
         tk.Label(status_frame, text="Мой IP:", font=("Segoe UI", 10),
-                 bg=BG2, fg=FG).grid(row=0, column=4, sticky="w", padx=(20, 0))
+                bg=BG2, fg=FG).grid(row=0, column=4, sticky="w", padx=(20, 0))
         self.lbl_ip = tk.Label(status_frame, text=self._get_local_ip(),
-                               font=("Segoe UI", 10, "bold"), bg=BG2, fg=ACCENT)
+                            font=("Segoe UI", 10, "bold"), bg=BG2, fg=ACCENT)
         self.lbl_ip.grid(row=0, column=5, sticky="w", padx=8)
 
         # ── Лог команд ──
@@ -99,7 +99,7 @@ class AgentGUI:
         log_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=8)
 
         tk.Label(log_frame, text="📋 Журнал активности",
-                 font=("Segoe UI", 10, "bold"), bg=BG, fg=ACCENT).pack(anchor="w")
+                font=("Segoe UI", 10, "bold"), bg=BG, fg=ACCENT).pack(anchor="w")
 
         self.log_box = scrolledtext.ScrolledText(
             log_frame,
@@ -128,7 +128,7 @@ class AgentGUI:
         btn_frame.pack(fill=tk.X, padx=10)
 
         btn_cfg = {"font": ("Segoe UI", 9), "relief": tk.FLAT,
-                   "cursor": "hand2", "padx": 8, "pady": 6}
+                "cursor": "hand2", "padx": 8, "pady": 6}
 
         self.btn_start = tk.Button(
             btn_frame, text="▶ Запустить",
@@ -236,39 +236,39 @@ class AgentGUI:
         event = ev.get("event")
 
         if event == "connect":
-            ip = ev.get("ip","?")
+            ip = ev.get("ip", "?")
             self.connected_ip = ip
             self._safe(lambda: self._on_connect(ip))
 
         elif event == "auth_ok":
-            ip = ev.get("ip","?")
+            ip = ev.get("ip", "?")
             self._safe(lambda: self._log(f"✅ Аутентификация пройдена: {ip}", "connect"))
 
         elif event == "auth_fail":
-            ip = ev.get("ip","?")
+            ip = ev.get("ip", "?")
             self._safe(lambda: self._log(f"❌ Неверный пароль от {ip}", "danger"))
 
         elif event == "cmd":
-            ip  = ev.get("ip","?")
-            cmd = ev.get("cmd","")
-            t   = ev.get("time","")
+            ip  = ev.get("ip", "?")
+            cmd = ev.get("cmd", "")
+            t   = ev.get("time", "")
             self._safe(lambda: self._log(f"🖊  {ip} → {cmd}", "cmd"))
 
         elif event == "blocked_by_owner":
-            cmd = ev.get("cmd","")
+            cmd = ev.get("cmd", "")
             self._safe(lambda: self._log(f"🔒 Заблокировано тобой: {cmd}", "blocked"))
 
         elif event == "blocked_danger":
-            cmd = ev.get("cmd","")
-            pat = ev.get("pattern","")
+            cmd = ev.get("cmd", "")
+            pat = ev.get("pattern", "")
             self._safe(lambda: self._log(f"⚠️  Опасная команда заблокирована: {cmd}  (паттерн: {pat})", "danger"))
 
         elif event == "kicked":
-            ip = ev.get("ip","?")
+            ip = ev.get("ip", "?")
             self._safe(lambda: self._on_disconnect(ip, kicked=True))
 
         elif event == "disconnect":
-            ip = ev.get("ip","?")
+            ip = ev.get("ip", "?")
             self._safe(lambda: self._on_disconnect(ip))
 
     def _on_connect(self, ip: str):
@@ -311,21 +311,9 @@ class AgentGUI:
         self._password = password
         port = rs.DEFAULT_PORT
         self.is_running = True
-
-        # Запускаємо proxy сервер на порту 9999 (один туннель для всього)
-        try:
-            import proxy_server as px
-            px.SHELL_PORT  = 19999
-            px.SCREEN_PORT = 19998
-            threading.Thread(target=px.run_proxy, args=(9999,), daemon=True).start()
-            shell_port  = 19999
-            screen_port = 19998
-            self._screen_port = 19998
-            self._log("🔀 Proxy сервер запущено на порту 9999.", "server")
-        except ImportError:
-            shell_port  = 9999
-            screen_port = 9998
-            self._screen_port = 9998
+        shell_port  = 9999
+        screen_port = 9998
+        self._screen_port = 9998
 
         self.server_thread = threading.Thread(
             target=rs.run_server,
@@ -471,13 +459,13 @@ class AgentGUI:
         if not self.connected_ip:
             return
         if messagebox.askyesno("Выгнать клиента",
-                               f"Выгнать {self.connected_ip}?"):
+                            f"Выгнать {self.connected_ip}?"):
             rs._server_state["kick"] = True
             self._log(f"⛔ Команда выгнать {self.connected_ip} отправлена.", "kick")
 
     def _stop_server(self):
         if messagebox.askyesno("Остановить сервер",
-                               "Остановить сервер? Текущее подключение будет разорвано."):
+                            "Остановить сервер? Текущее подключение будет разорвано."):
             rs._server_state["kick"] = True
             self.is_running = False
             self.lbl_status.configure(text="⏸ Остановлен", fg="#f9e2af")
