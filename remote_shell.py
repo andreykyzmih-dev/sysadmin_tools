@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-remote_shell.py — Удалённое управление компьютером.
+remote_shell.py — Удалённое управление компьютером через PowerShell.
 
 Друг запускает: python remote_shell.py --server --password ПАРОЛЬ
 Ты подключаешься: python remote_shell.py --client --host IP --password ПАРОЛЬ
@@ -288,6 +288,9 @@ def run_client(host, port, password):
         sock.settimeout(10)
         sock.connect((host, port))
         sock.settimeout(None)
+
+        # Надсилаємо тип з'єднання — 'S' для Shell
+        sock.sendall(b'S')
     except Exception as e:
         print(f"[ОШИБКА] {e}")
         sys.exit(1)
